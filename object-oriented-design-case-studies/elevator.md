@@ -118,3 +118,53 @@
 3. **Elevator Unit** → Moves to Service Request → Provides Feedback → **Central Controller**
 
 4. **Central Controller** → Monitors Elevator Status and Updates Queues
+
+
+```plaintext
++----------------------+            +--------------------+
+| External Control     |            |  Internal Control  |
+| Panel (Floor N)      |            |  Panel (Elevator X)|
+|  [Up] [Down] Buttons |            |  [Floor Buttons]   |
++----------+-----------+            +----------+---------+
+           |                               |
+           |                               |
+           v                               v
++-------------------------------------------------------+
+|                    Central Controller                 |
+|                                                       |
+|  +--------------+     +--------------+     +--------+ |
+|  | Elevator 1   |     | Elevator 2   |     | Elevator 3  |
+|  | Status: Idle |     | Status: Moving Up | | Status: Moving Down |
+|  | Floor: 8     |     | Floor: 4          | | Floor: 10          |
+|  | Queue: []    |     | Queue: [7]        | | Queue: [5]         |
+|  +--------------+     +--------------+     +--------+            |
+|       ^                     ^                      ^             |
+|       |                     |                      |             |
+|       v                     v                      v             |
+| +-------------+      +--------------+      +--------------+      |
+| | Request 3   | ---> | Request 1     | --->| Request 2     |      |
+| | Floor 12    |      | Floor 3 (Up)  |     | Floor 9 (Down)|      |
+| +-------------+      +--------------+      +--------------+      |
++-------------------------------------------------------+
+           ^                               ^                             
+           |                               |
+           |                               |
+  +----------------------+        +-----------------------+
+  | Elevator 1 Local     |        | Elevator 3 Local       |
+  | Controller           |        | Controller             |
+  +----------------------+        +-----------------------+
+           |                               |
+           |                               |
+           v                               v
+   +-------------------+         +-------------------+
+   | Elevator 1 Movement|         | Elevator 3 Movement|
+   +-------------------+         +-------------------+
+           |                               |
+           |                               |
+           v                               v
+   +-------------------+         +-------------------+
+   | Passenger C Exit   |         | Passenger B Enter |
+   +-------------------+         +-------------------+
+```
+
+
