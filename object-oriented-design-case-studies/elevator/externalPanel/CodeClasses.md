@@ -1,4 +1,81 @@
 
+
+```mermaid
+classDiagram
+    class CentralController {
+        +Elevator[] elevators
+        +Request[] requests
+        +DispatchAlgorithm dispatchAlgorithm
+        +ExternalRequestPanel[] floorPanels
+        +receiveFloorRequest(request: Request): void
+        +dispatchElevator(request: Request): void
+        +receiveStatusUpdate(status: ElevatorStatus): void
+    }
+
+    class Elevator {
+        +int id
+        +int currentFloor
+        +'UP' | 'DOWN' | 'IDLE' direction
+        +int load
+        +int maxLoad = 680
+        +Request[] requestQueue
+        +boolean isOperational = true
+        +addRequestToQueue(request: Request): void
+        +moveToFloor(floor: number): void
+        +openDoors(): void
+        +checkOverload(): boolean
+        +calculateScore(request: Request): number
+    }
+
+    class Request {
+        +int floor
+        +'UP' | 'DOWN' direction
+        +boolean isPriority = false
+        +validate(): boolean
+    }
+
+    class DispatchAlgorithm {
+        +calculateBestElevator(request: Request, elevators: Elevator[]): Elevator | null
+    }
+
+    class ExternalRequestPanel {
+        +int floor
+        +'UP' | 'DOWN' direction
+        +pressButton(direction: 'UP' | 'DOWN'): void
+    }
+
+    class ElevatorStatus {
+        +int elevatorId
+        +int currentFloor
+        +'UP' | 'DOWN' | 'IDLE' direction
+        +int load
+        +boolean isOperational
+        +serialize(): string
+    }
+
+    class Sensors {
+        <<abstract>>
+        +WeightSensor
+        +PositionSensor
+    }
+
+    %% Relationships
+    CentralController "1" *-- "many" Elevator : aggregates
+    CentralController "1" --> "1" DispatchAlgorithm : uses
+    CentralController "1" --> "many" ExternalRequestPanel : manages
+    CentralController "1" --> "many" Request : processes
+    Elevator "1" --> "many" Request : handles
+    Elevator "1" o-- Sensors : has
+    Elevator --> ElevatorStatus : sends updates
+    CentralController --> ElevatorStatus : receives
+```
+
+### **Explanation**:
+- **CentralController** aggregates multiple **Elevators** and manages **ExternalRequestPanels** and **Requests**.
+- **DispatchAlgorithm** is used by **CentralController** to choose the optimal elevator.
+- **Elevators** handle **Requests**, monitor their own **load** and **currentFloor**, and send **ElevatorStatus** updates back to the **CentralController**.
+- **Sensors** (such as weight and position) provide crucial data for the elevators to function safely.
+
 ---
 
 ### **1. Class: CentralController**
@@ -129,54 +206,5 @@ The **ElevatorStatus** class encapsulates status information sent from the eleva
 
 ---
 
-### **Class Diagram (Text-Based Overview)**
-
-```plaintext
-+----------------------+       +----------------------+
-|   CentralController  |       |        Elevator       |
-+----------------------+       +----------------------+
-| - elevators: Elevator[]       | - id: number         |
-| - requests: Request[]         | - currentFloor: int  |
-| - dispatchAlgorithm: Dispatch | - direction: enum    |
-+----------------------+       | - load: number        |
-| + receiveFloorRequest()       | - maxLoad: number    |
-| + dispatchElevator()          | - requestQueue: Req[]|
-| + receiveStatusUpdate()       +----------------------+
-+----------------------+       | + addRequestToQueue() |
-                                | + moveToFloor()      |
-          ^                     | + openDoors()        |
-          |                     | + checkOverload()    |
-          |                     +----------------------+
-          |                            ^
-          v                            |
-+-------------------+                  |
-|   Request         |                  |
-+-------------------+                  |
-| - floor: number   |                  |
-| - direction: enum |                  |
-| - isPriority: bool|------------------+
-+-------------------+
-
-+----------------------+       +----------------------+
-|  DispatchAlgorithm   |       |  ExternalRequestPanel |
-+----------------------+       +----------------------+
-| + calculateBestElevator()    | - floor: number       |
-|                              | - direction: enum     |
-+----------------------+       +----------------------+
-                               | + pressButton()       |
-                               +----------------------+
-
-+-----------------------+      +---------------------+
-|    ElevatorStatus      |      |       Sensors
-
-       |
-+-----------------------+      +---------------------+
-| - elevatorId: number   |      | Weight, Position    |
-| - currentFloor: number |      +---------------------+
-| - direction: enum      |
-| - load: number         |
-| - isOperational: bool  |
-+-----------------------+
-```
 
 ---
