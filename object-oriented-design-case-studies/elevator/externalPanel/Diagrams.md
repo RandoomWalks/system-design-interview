@@ -115,7 +115,7 @@
 
 ---
 
-Here is the **granular ASCII visualization** of the **Central Controller State Diagram** for Flow 1. It illustrates the states and transitions the Central Controller goes through when handling passenger requests for an elevator. This includes processing requests, dispatching elevators, and dealing with errors such as overload or unavailability of elevators.
+**Central Controller State Diagram**
 
 ```plaintext
                                 +-------------------+
