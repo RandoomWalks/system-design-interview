@@ -225,3 +225,41 @@
    - **Trigger**: The system is ready to handle the pending request again (e.g., a previously unavailable elevator becomes available).
 
 ---
+
+
+
+```mermaid
+stateDiagram
+    [*] --> Idle
+    
+    Idle --> ProcessingRequest : Receive floor request
+    ProcessingRequest --> ErrorHandling : No elevators available/system error
+    ProcessingRequest --> DispatchElevator : Elevator available
+    
+    DispatchElevator --> AwaitingElevatorMove : Dispatch successful
+    
+    AwaitingElevatorMove --> UpdateQueue : Elevator arrives at floor
+    UpdateQueue --> ProcessingRequest : More requests in queue
+    UpdateQueue --> Idle : No more requests
+    
+    ProcessingRequest --> HandleOverload : Elevator overload detected
+    HandleOverload --> ErrorHandling : Persisting overload, reassign request
+    HandleOverload --> ProcessingRequest : Overload resolved
+    
+    AwaitingElevatorMove --> ErrorHandling : Elevator failure detected
+    ErrorHandling --> ProcessingRequest : Error resolved
+    ErrorHandling --> Idle : No pending requests
+    
+    UpdateQueue --> ProcessingRequest : Multiple requests in queue
+    ErrorHandling --> ElevatorInMaintenance : Elevator enters maintenance
+    ElevatorInMaintenance --> ProcessingRequest : Reassign requests
+    ElevatorInMaintenance --> Idle : No pending requests
+```
+
+### **Explanation of Key Elements**:
+1. **Idle State**: The system starts in the idle state waiting for a floor request.
+2. **Processing Request**: The system evaluates elevator availability and processes requests.
+3. **Error Handling**: If no elevators are available or there's a system error, the system enters error handling.
+4. **Overload Handling**: If the elevator is overloaded, the system either resolves the issue or reassigns the request.
+5. **Elevator Failure**: If an elevator breaks down during movement, the system enters error handling and reroutes requests if needed.
+6. **Maintenance**: If an elevator enters maintenance, the system reassigns its requests.
