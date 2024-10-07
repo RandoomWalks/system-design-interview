@@ -1,160 +1,116 @@
-**State Diagram** for the **Elevator System**
+**Elevator State Diagram**
 
-```plaintext
-                               +-------------------+
-                               |       Idle        |
-                               +-------------------+
-                                       |
-             Floor request received    |   Request for current floor
-                                       v
-                              +-------------------+
-                              |   Moving Up/Down  |
-                              +-------------------+
-                                 |          |
-     Arrive at floor requested   |          | No more requests
-                                 v          |
-                          +-------------------+ 
-                          |    Door Opening   |
-                          +-------------------+
-                                 |
-                      Doors fully open         v
-                                 |         +----------------+
-                                 |         |   Overloaded    |
-                Passengers enter |         +----------------+
-                     or exit     |                ^
-                                 v                |
-                          +-------------------+  |
-                          | Loading/Unloading |  |
-                          +-------------------+  |
-                                 |                |
-          Load below max weight  |                |  Weight exceeds max capacity
-                                 v                |
-                          +-------------------+  |
-                          |    Door Closing   |  |
-                          +-------------------+  |
-                                 |                |
-              Doors fully closed |                |
-                                 v                |
-                   Pending requests? -------------+
-                         |   |
-               Yes        |   | No
-                         v    v
-                  +--------------------+   
-                  |   Moving Up/Down   |
-                  +--------------------+   
-                         | 
-                 Arrive at next floor
-                         v
-                +---------------------+
-                |   Door Opening      |
-                +---------------------+
+```mermaid
+stateDiagram
+    [*] --> Idle
+    Idle --> MovingUpDown : Receive floor request
+    Idle --> DoorOpening : Request for current floor
+    Idle --> OutOfService : Maintenance done / Fault cleared
+
+    MovingUpDown --> DoorOpening : Arrive at requested floor
+    MovingUpDown --> Idle : No more requests
+
+    DoorOpening --> LoadingUnloading : Doors fully open
+    DoorOpening --> Fault : Door mechanism issue
+
+    LoadingUnloading --> DoorClosing : Weight OK, passengers entered/exited
+    LoadingUnloading --> Overloaded : Weight exceeds limit
+    LoadingUnloading --> Fault : Sensor malfunction
+
+    Overloaded --> LoadingUnloading : Passengers exit, load reduces below max
+    Overloaded --> Fault : Overload persists
+
+    DoorClosing --> MovingUpDown : More requests in queue
+    DoorClosing --> Idle : No more requests
+
+    Fault --> OutOfService : Fault detected
+    OutOfService --> Idle : Maintenance done
+    
+    EmergencyStop --> Fault : Emergency trigger
+    MovingUpDown --> EmergencyStop : Emergency trigger
+    
+    [*] --> EmergencyStop : Emergency detected
 ```
 
-### **Detailed Breakdown of States and Transitions:**
+### **Explanation of Key States and Transitions**:
 
-#### **1. Idle**
-   - **Description**: The elevator is not servicing any requests, and it's stationary at a floor.
-   - **Transitions**:
-     - **To Moving Up/Down**: When a new floor request is received from the controller or a passenger inside the elevator.
-     - **To Door Opening**: If the request is for the current floor (no movement required).
-  
-#### **2. Moving Up/Down**
-   - **Description**: The elevator is in transit between floors to service a request.
-   - **Transitions**:
-     - **To Door Opening**: When the elevator reaches the requested floor.
-     - **To Idle**: If there are no further requests in the queue.
+1. **Idle**: The elevator is stationary, waiting for a new request.
+    - Transitions:
+      - To **MovingUpDown**: A floor request is received.
+      - To **DoorOpening**: The request is for the current floor.
+      - To **OutOfService**: After maintenance or fault clearance.
 
-#### **3. Door Opening**
-   - **Description**: The elevator arrives at a requested floor and starts opening its doors.
-   - **Transitions**:
-     - **To Loading/Unloading**: Once the doors are fully open, passengers start entering or exiting the elevator.
-     - **To Overloaded**: If passengers enter and the weight exceeds the safe limit during loading.
+2. **MovingUpDown**: The elevator is moving between floors to handle a request.
+    - Transitions:
+      - To **DoorOpening**: The elevator arrives at the requested floor.
+      - To **Idle**: No more requests to handle after the current one.
+      - To **EmergencyStop**: An emergency is detected during movement.
 
-#### **4. Loading/Unloading**
-   - **Description**: Passengers are entering or exiting the elevator. The system monitors the load inside the elevator using weight sensors.
-   - **Transitions**:
-     - **To Overloaded**: If the total weight exceeds the capacity.
-     - **To Door Closing**: If the load is below the maximum limit and all passengers have entered or exited.
+3. **DoorOpening**: The doors are opening to allow passengers to enter/exit.
+    - Transitions:
+      - To **LoadingUnloading**: The doors are fully opened.
+      - To **Fault**: A door mechanism issue is detected.
 
-#### **5. Door Closing**
-   - **Description**: After passengers have entered or exited, the elevator's doors begin to close.
-   - **Transitions**:
-     - **To Moving Up/Down**: If there are more requests to handle, the elevator resumes movement to service the next request.
-     - **To Idle**: If no more requests are pending, the elevator goes back to the `Idle` state.
+4. **LoadingUnloading**: Passengers are entering/exiting the elevator, with the system monitoring the weight.
+    - Transitions:
+      - To **DoorClosing**: The load is below the maximum limit after passengers enter/exit.
+      - To **Overloaded**: The weight exceeds the maximum capacity (e.g., 680 kg).
+      - To **Fault**: A sensor or weight malfunction is detected.
 
-#### **6. Overloaded**
-   - **Description**: The elevator's weight sensors detect that the load exceeds the maximum allowed weight (e.g., 680 kg), and the elevator cannot move.
-   - **Transitions**:
-     - **To Loading/Unloading**: Once passengers exit and the weight falls below the threshold, the system returns to the loading state.
-     - The elevator remains in this state until the load is reduced to safe levels.
+5. **Overloaded**: The elevator is overloaded and cannot move until the load is reduced.
+    - Transitions:
+      - To **LoadingUnloading**: Passengers exit, and the load drops below the limit.
+      - To **Fault**: The overload persists.
 
-#### **Edge Case Transitions:**
-   - **Arrive at Floor but No Passengers Enter**: The elevator will proceed to `Door Closing` after a timeout if no passengers enter or exit after doors are fully opened.
-   - **Emergency (Not Shown)**: In case of an emergency, the elevator might transition to an emergency handling state where it bypasses normal operations and returns to a designated floor (like the ground floor).
+6. **DoorClosing**: The doors are closing after passengers enter/exit.
+    - Transitions:
+      - To **MovingUpDown**: There are more requests to handle.
+      - To **Idle**: No more requests are pending.
 
----
+7. **Fault**: A mechanical or sensor issue has been detected.
+    - Transitions:
+      - To **OutOfService**: The elevator is taken out of service for maintenance.
+      
+8. **OutOfService**: The elevator is out of service due to a fault or maintenance.
+    - Transitions:
+      - To **Idle**: The elevator is returned to service after maintenance.
 
-### **State Transitions Summary:**
-
-1. **Idle** → **Moving Up/Down**:
-   - Trigger: A floor request is received.
-2. **Moving Up/Down** → **Door Opening**:
-   - Trigger: The elevator reaches the requested floor.
-3. **Door Opening** → **Loading/Unloading**:
-   - Trigger: Doors fully open, and passengers enter/exit.
-4. **Loading/Unloading** → **Overloaded**:
-   - Trigger: Weight exceeds the maximum allowed.
-5. **Overloaded** → **Loading/Unloading**:
-   - Trigger: Passengers exit, reducing the load below the limit.
-6. **Loading/Unloading** → **Door Closing**:
-   - Trigger: Passengers finish entering/exiting, and load is below max weight.
-7. **Door Closing** → **Moving Up/Down**:
-   - Trigger: Pending requests in the queue.
-8. **Door Closing** → **Idle**:
-   - Trigger: No further requests to handle.
+9. **EmergencyStop**: The elevator is stopped due to an emergency situation.
+    - Transitions:
+      - To **Fault**: An emergency trigger (e.g., fire alarm) causes the elevator to stop.
 
 ---
 
 **Central Controller State Diagram**
 
-```plaintext
-                                +-------------------+
-                                |       Idle        |
-                                +-------------------+
-                                       |
-               Receive floor request   |  No requests
-                                       v
-                            +------------------------+
-                            |   Processing Request   |
-                            +------------------------+
-                                       |
-           Elevators available?        |   No elevators available
-                Yes                    |   or system error
-                |                      v
-                v               +------------------------+
-     +--------------------+     |     Error Handling     |
-     | Dispatch elevator   |     +------------------------+
-     | and update status   |             ^
-     +--------------------+              |
-                |                         |
-                |                Error resolved or fallback
-                v
-      +-------------------------+
-      |  Awaiting Elevator Move  |
-      +-------------------------+
-                |
-     Elevator arrives at floor  | No further requests
-                v               v
-        +------------------+  +------------------+
-        |    Update Queue   |  |       Idle       |
-        +------------------+  +------------------+
-                |
-     More requests in queue?
-             Yes | No
-                v
-      +-------------------------+
-      |   Processing Request    |
-      +-------------------------+
+
+
+```mermaid
+stateDiagram
+    [*] --> Idle
+    
+    Idle --> ProcessingRequest : Receive floor request
+    ProcessingRequest --> ErrorHandling : No elevators available/system error
+    ProcessingRequest --> DispatchElevator : Elevator available
+    
+    DispatchElevator --> AwaitingElevatorMove : Dispatch successful
+    
+    AwaitingElevatorMove --> UpdateQueue : Elevator arrives at floor
+    UpdateQueue --> ProcessingRequest : More requests in queue
+    UpdateQueue --> Idle : No more requests
+    
+    ProcessingRequest --> HandleOverload : Elevator overload detected
+    HandleOverload --> ErrorHandling : Persisting overload, reassign request
+    HandleOverload --> ProcessingRequest : Overload resolved
+    
+    AwaitingElevatorMove --> ErrorHandling : Elevator failure detected
+    ErrorHandling --> ProcessingRequest : Error resolved
+    ErrorHandling --> Idle : No pending requests
+    
+    UpdateQueue --> ProcessingRequest : Multiple requests in queue
+    ErrorHandling --> ElevatorInMaintenance : Elevator enters maintenance
+    ElevatorInMaintenance --> ProcessingRequest : Reassign requests
+    ElevatorInMaintenance --> Idle : No pending requests
 ```
 
 ### **Detailed Breakdown of the Central Controller’s States and Transitions:**
@@ -226,40 +182,3 @@
 
 ---
 
-
-
-```mermaid
-stateDiagram
-    [*] --> Idle
-    
-    Idle --> ProcessingRequest : Receive floor request
-    ProcessingRequest --> ErrorHandling : No elevators available/system error
-    ProcessingRequest --> DispatchElevator : Elevator available
-    
-    DispatchElevator --> AwaitingElevatorMove : Dispatch successful
-    
-    AwaitingElevatorMove --> UpdateQueue : Elevator arrives at floor
-    UpdateQueue --> ProcessingRequest : More requests in queue
-    UpdateQueue --> Idle : No more requests
-    
-    ProcessingRequest --> HandleOverload : Elevator overload detected
-    HandleOverload --> ErrorHandling : Persisting overload, reassign request
-    HandleOverload --> ProcessingRequest : Overload resolved
-    
-    AwaitingElevatorMove --> ErrorHandling : Elevator failure detected
-    ErrorHandling --> ProcessingRequest : Error resolved
-    ErrorHandling --> Idle : No pending requests
-    
-    UpdateQueue --> ProcessingRequest : Multiple requests in queue
-    ErrorHandling --> ElevatorInMaintenance : Elevator enters maintenance
-    ElevatorInMaintenance --> ProcessingRequest : Reassign requests
-    ElevatorInMaintenance --> Idle : No pending requests
-```
-
-### **Explanation of Key Elements**:
-1. **Idle State**: The system starts in the idle state waiting for a floor request.
-2. **Processing Request**: The system evaluates elevator availability and processes requests.
-3. **Error Handling**: If no elevators are available or there's a system error, the system enters error handling.
-4. **Overload Handling**: If the elevator is overloaded, the system either resolves the issue or reassigns the request.
-5. **Elevator Failure**: If an elevator breaks down during movement, the system enters error handling and reroutes requests if needed.
-6. **Maintenance**: If an elevator enters maintenance, the system reassigns its requests.
